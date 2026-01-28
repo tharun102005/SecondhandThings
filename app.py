@@ -3,12 +3,28 @@ from werkzeug.utils import secure_filename
 import json
 import os
 import uuid
+import random
+import string
+from datetime import datetime, timedelta
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+
+# ========================
+# EMAIL CONFIGURATION (HARDCODED)
+# ========================
+SMTP_SERVER = "smtp.gmail.com"
+SMTP_PORT = 587
+SENDER_EMAIL = "tharun060828@gmail.com"
+SENDER_PASSWORD = "zllz vdgs jtxi voty"
+DEBUG_MODE = False
 
 app = Flask(__name__)
 app.secret_key = "mysecretkey"
 
 DATA_FILE = "data.json"
 UPLOAD_FOLDER = "static/uploads"
+OTP_FILE = "otp_store.json"
 app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
 
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
@@ -16,6 +32,10 @@ os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 if not os.path.exists(DATA_FILE):
     with open(DATA_FILE, "w") as f:
         json.dump({"users": [], "items": []}, f)
+
+if not os.path.exists(OTP_FILE):
+    with open(OTP_FILE, "w") as f:
+        json.dump({}, f)
 
 
 # =========================
@@ -33,6 +53,161 @@ os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 if not os.path.exists(DATA_FILE):
     with open(DATA_FILE, "w") as f:
         json.dump({"users": [], "items": []}, f)
+
+# =========================
+# OTP HELPER FUNCTIONS
+# =========================
+
+
+def generate_otp():
+    """Generate a 6-digit OTP"""
+    return ''.join(random.choices(string.digits, k=6))
+
+
+def load_otp_store():
+    """Load OTP storage from file"""
+    try:
+        with open(OTP_FILE, "r") as f:
+            return json.load(f)
+    except:
+        return {}
+
+
+def save_otp_store(otp_store):
+    """Save OTP storage to file"""
+    with open(OTP_FILE, "w") as f:
+        json.dump(otp_store, f, indent=4)
+
+
+def store_otp(mobile, otp):
+    """Store OTP with expiration (5 minutes)"""
+    otp_store = load_otp_store()
+    otp_store[mobile] = {
+        "otp": otp,
+        "created_at": datetime.now().isoformat(),
+        "expires_at": (datetime.now() + timedelta(minutes=5)).isoformat()
+    }
+    save_otp_store(otp_store)
+
+
+def verify_otp(mobile, otp):
+    """Verify OTP against stored value"""
+    otp_store = load_otp_store()
+    if mobile not in otp_store:
+        return False, "OTP not found. Please request a new OTP."
+    
+    stored_data = otp_store[mobile]
+    expires_at = datetime.fromisoformat(stored_data["expires_at"])
+    
+    if datetime.now() > expires_at:
+        return False, "OTP has expired. Please request a new OTP."
+    
+    if stored_data["otp"] != otp:
+        return False, "Invalid OTP."
+    
+    return True, "OTP verified successfully"
+
+
+def clear_otp(mobile):
+    """Clear OTP after successful verification"""
+    otp_store = load_otp_store()
+    if mobile in otp_store:
+        del otp_store[mobile]
+        save_otp_store(otp_store)
+
+
+# =========================
+# EMAIL SENDING FUNCTION
+# =========================
+
+def send_email_otp(email, otp):
+    """Send OTP to email using SMTP"""
+    
+    # Print to console for development/debugging
+    print(f"\n{'='*60}")
+    print(f"Email OTP Sent to: {email}")
+    print(f"OTP: {otp}")
+    print(f"{'='*60}\n")
+    
+    if DEBUG_MODE:
+        return True
+    
+    try:
+        # Create email message
+        message = MIMEMultipart("alternative")
+        message["Subject"] = "Your OTP for Email Verification"
+        message["From"] = SENDER_EMAIL
+        message["To"] = email
+        
+        # Create plain text and HTML versions of the email
+        text = f"""
+        Your OTP for Email Verification is: {otp}
+        
+        This OTP is valid for 5 minutes.
+        Do not share this OTP with anyone.
+        
+        If you didn't request this, please ignore this email.
+        """
+        
+        html = f"""\
+        <html>
+            <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+                <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
+                    <h2 style="color: #667eea;">Email Verification</h2>
+                    <p>Thank you for signing up! Here's your OTP to verify your email address:</p>
+                    
+                    <div style="background: #f0f0f0; padding: 20px; border-radius: 5px; text-align: center; margin: 20px 0;">
+                        <h1 style="color: #667eea; font-size: 36px; letter-spacing: 5px; margin: 0;">{otp}</h1>
+                    </div>
+                    
+                    <p><strong>OTP Validity:</strong> 5 minutes</p>
+                    
+                    <p style="color: #666; font-size: 14px;">
+                        <strong>Important:</strong> Do not share this OTP with anyone. We will never ask you for your OTP.
+                    </p>
+                    
+                    <p style="color: #666; font-size: 14px;">
+                        If you didn't request this OTP, please ignore this email.
+                    </p>
+                    
+                    <hr style="border: none; border-top: 1px solid #ddd; margin: 20px 0;">
+                    
+                    <p style="color: #999; font-size: 12px; text-align: center;">
+                        This is an automated email. Please do not reply.
+                    </p>
+                </div>
+            </body>
+        </html>
+        """
+        
+        part1 = MIMEText(text, "plain")
+        part2 = MIMEText(html, "html")
+        
+        message.attach(part1)
+        message.attach(part2)
+        
+        # Send email
+        print(f"Connecting to SMTP server: {SMTP_SERVER}:{SMTP_PORT}")
+        with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as server:
+            server.starttls()
+            print("TLS connection established")
+            server.login(SENDER_EMAIL, SENDER_PASSWORD)
+            print(f"Logged in as: {SENDER_EMAIL}")
+            server.sendmail(SENDER_EMAIL, email, message.as_string())
+            print(f"Email sent successfully to {email}")
+        
+        return True
+        
+    except smtplib.SMTPAuthenticationError as e:
+        print(f"SMTP Authentication Error: {str(e)}")
+        print(f"Check if app password is correct: {SENDER_PASSWORD}")
+        return False
+    except smtplib.SMTPException as e:
+        print(f"SMTP Error: {str(e)}")
+        return False
+    except Exception as e:
+        print(f"Error sending email: {str(e)}")
+        return False
 
 # =========================
 # LOAD / SAVE DATA
@@ -67,21 +242,23 @@ def login():
     data = load_data()
 
     if request.method == "POST":
-        mobile = request.form.get("mobile")
+        email = request.form.get("email")
         password = request.form.get("password")
 
         for u in data["users"]:
-            if u.get("mobile") == mobile and u.get("password") == password:
+            if u.get("email") == email and u.get("password") == password:
                 if u.get("status") == "blocked":
                     return render_template(
                         "login.html", error="Account blocked")
 
+                # Direct login without OTP
                 session["user"] = u
                 return redirect("/buy")
 
-        return render_template("login.html", error="Invalid login")
+        return render_template("login.html", error="Invalid email or password")
 
     return render_template("login.html")
+
 
 # =========================
 # SIGNUP
@@ -93,10 +270,29 @@ def signup():
     data = load_data()
 
     if request.method == "POST":
-        user = {
+        email = request.form.get("email")
+        
+        # Check if email already exists
+        if any(u.get("email") == email for u in data["users"]):
+            return render_template("signup.html", error="Email already registered")
+        
+        # Check if mobile already exists
+        mobile = request.form.get("mobile")
+        if any(u.get("mobile") == mobile for u in data["users"]):
+            return render_template("signup.html", error="Mobile number already registered")
+        
+        # Generate OTP and send to email
+        otp = generate_otp()
+        store_otp(email, otp)
+        
+        # Send OTP via email
+        send_email_otp(email, otp)
+        
+        # Store user data temporarily for verification
+        user_data = {
             "name": request.form.get("name"),
-            "mobile": request.form.get("mobile"),
-            "email": request.form.get("email"),
+            "mobile": mobile,
+            "email": email,
             "password": request.form.get("password"),
             "address": "",
             "dob": "",
@@ -104,11 +300,70 @@ def signup():
             "wishlist": [],
             "status": "active"
         }
-        data["users"].append(user)
-        save_data(data)
-        return redirect("/login")
+        
+        session["email_for_otp"] = email
+        session["temp_user_data"] = user_data
+        
+        return redirect("/verify-otp-signup")
 
     return render_template("signup.html")
+
+# =========================
+# VERIFY OTP SIGNUP
+# =========================
+
+
+@app.route("/verify-otp-signup", methods=["GET", "POST"])
+def verify_otp_signup():
+    if "email_for_otp" not in session or "temp_user_data" not in session:
+        return redirect("/signup")
+    
+    email = session.get("email_for_otp")
+    
+    if request.method == "POST":
+        otp = request.form.get("otp")
+        
+        is_valid, message = verify_otp(email, otp)
+        
+        if is_valid:
+            clear_otp(email)
+            
+            # Save user to database
+            data = load_data()
+            user = session.get("temp_user_data")
+            data["users"].append(user)
+            save_data(data)
+            
+            session.pop("email_for_otp", None)
+            session.pop("temp_user_data", None)
+            
+            return redirect("/login")
+        else:
+            return render_template("verify-otp-signup.html", 
+                                 error=message, email=email)
+    
+    return render_template("verify-otp-signup.html", email=email)
+
+# =========================
+# RESEND OTP
+# =========================
+
+
+@app.route("/resend-otp", methods=["POST"])
+def resend_otp():
+    email = request.form.get("email")
+    
+    if not email:
+        return jsonify({"error": "Email required"}), 400
+    
+    # Generate new OTP
+    otp = generate_otp()
+    store_otp(email, otp)
+    
+    # Send OTP via email
+    send_email_otp(email, otp)
+    
+    return jsonify({"success": True, "message": "OTP sent successfully to your email"})
 
 # =========================
 # BUY

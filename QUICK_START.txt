@@ -1,0 +1,80 @@
+EMAIL OTP VERIFICATION - QUICK START GUIDE
+============================================
+
+CONFIGURATION: DONE ✓
+Email and password are now hardcoded in app.py
+
+EMAIL DETAILS:
+- From: tharun060828@gmail.com
+- Password: zllz vdgs jtxi voty (App Password)
+- SMTP: smtp.gmail.com:587
+- Status: Ready to send OTP emails
+
+---
+
+HOW TO RUN:
+
+1. Start Flask app:
+   python app.py
+
+2. Open browser:
+   http://localhost:5000
+
+3. Test Signup:
+   - Go to /signup
+   - Enter: Name, Mobile, Email, Password
+   - Click "Sign Up"
+   - Check your email for OTP
+   - Enter OTP to create account
+
+4. Test Login:
+   - Go to /login
+   - Enter: Email, Password
+   - Click "Login"
+   - Check your email for OTP
+   - Enter OTP to login
+
+---
+
+WHAT YOU'LL SEE IN CONSOLE:
+
+When OTP is sent, Flask console will show:
+============================================================
+Email OTP Sent to: recipient@gmail.com
+OTP: 123456
+============================================================
+Connecting to SMTP server: smtp.gmail.com:587
+TLS connection established
+Logged in as: tharun060828@gmail.com
+Email sent successfully to recipient@gmail.com
+
+---
+
+IF EMAILS DON'T ARRIVE:
+
+1. Check email SPAM/JUNK folder
+2. Wait 5-10 seconds (Gmail can be slow)
+3. Try again with different recipient email
+4. Check Flask console for errors
+
+---
+
+FILES:
+
+✓ app.py - Main application (credentials hardcoded)
+✓ data.json - User database
+✓ otp_store.json - OTP storage (auto-created)
+✓ templates/ - HTML templates
+✓ static/ - CSS and images
+
+Optional to delete:
+- .env (no longer needed)
+- test_email.py (no longer needed)
+
+---
+
+READY TO GO!
+
+Just run: python app.py
+
+And test signup/login with OTP email verification!
