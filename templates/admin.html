@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Admin Panel</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: #f1f3f6;
+        }
+
+        .container {
+            width: 95%;
+            margin: 30px auto;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+        }
+
+        h2, h3 {
+            color: #333;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+
+        th, td {
+            border: 1px solid #ddd;
+            padding: 10px;
+            text-align: center;
+        }
+
+        th {
+            background: #2874f0;
+            color: white;
+        }
+
+        img {
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+
+        .btn {
+            padding: 6px 10px;
+            border-radius: 5px;
+            text-decoration: none;
+            color: white;
+            font-size: 13px;
+            display: inline-block;
+        }
+
+        .delete { background: #dc3545; }
+
+        .logout {
+            float: right;
+            background: black;
+            padding: 8px 12px;
+            color: white;
+            border-radius: 5px;
+            text-decoration: none;
+        }
+
+        a.username {
+            color: #2874f0;
+            text-decoration: none;
+            font-weight: bold;
+        }
+
+        a.username:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="container">
+
+    <h2>
+        Admin Panel
+        <a href="/admin-logout" class="logout">Logout</a>
+    </h2>
+
+    <!-- ================= USERS ================= -->
+    <h3>Users</h3>
+
+    <table>
+        <tr>
+            <th>Image</th>
+            <th>Name</th>
+            <th>Mobile</th>
+            <th>Email</th>
+            <th>Status</th>
+            <th>Action</th>
+        </tr>
+
+        {% for user in users %}
+        <tr>
+            <td>
+                <img src="{{ user.profile_image or '/static/user.png' }}">
+            </td>
+
+            <td>
+                {% if user.mobile %}
+                    <a class="username" href="/admin-user-items/{{ user.mobile }}">
+                        {{ user.name }}
+                    </a>
+                {% else %}
+                    {{ user.name }}
+                {% endif %}
+            </td>
+
+            <td>{{ user.mobile }}</td>
+            <td>{{ user.email }}</td>
+            <td>{{ user.status }}</td>
+
+            <td>
+                <!-- ✅ FIXED -->
+                <a class="btn delete"
+                   href="/admin-delete-user/{{ user.mobile }}"
+                   onclick="return confirm('Delete user and all their items?')">
+                    Delete
+                </a>
+            </td>
+        </tr>
+        {% endfor %}
+    </table>
+
+    <!-- ================= SELL ITEMS ================= -->
+    <h3 style="margin-top:40px">Sell Items</h3>
+
+    <table>
+        <tr>
+            <th>Model</th>
+            <th>Name</th>
+            <th>Mobile</th>
+            <th>Type</th>
+            <th>Price</th>
+            <th>Action</th>
+        </tr>
+
+        {% for item in items %}
+        <tr>
+            <td>{{ item.model }}</td>
+            <td>{{ item.name }}</td>
+            <td>{{ item.mobile }}</td>
+            <td>{{ item.type }}</td>
+            <td>₹ {{ item.price }}</td>
+            <td>
+                <!-- ✅ FIXED -->
+                <a class="btn delete"
+                   href="/admin-delete-user/{{ item.mobile }}"
+                   onclick="return confirm('Delete this user and all their items?')">
+                    Delete
+                </a>
+            </td>
+        </tr>
+        {% endfor %}
+    </table>
+
+</div>
+
+</body>
+</html>

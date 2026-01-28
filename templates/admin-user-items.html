@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>User Sell Items</title>
+
+    <style>
+        body{
+            font-family:Arial;
+            background:#f1f3f6;
+        }
+
+        .container{
+            max-width:1000px;
+            margin:40px auto;
+            background:white;
+            padding:25px;
+            border-radius:12px;
+            box-shadow:0 6px 20px rgba(0,0,0,.15);
+        }
+
+        h2{
+            margin-bottom:20px;
+        }
+
+        table{
+            width:100%;
+            border-collapse:collapse;
+        }
+
+        th,td{
+            padding:12px;
+            border-bottom:1px solid #ddd;
+            text-align:left;
+            font-size:14px;
+        }
+
+        th{
+            background:#2874f0;
+            color:white;
+        }
+
+        img{
+            width:70px;
+            height:70px;
+            object-fit:cover;
+            border-radius:6px;
+            border:1px solid #ccc;
+        }
+
+        .actions{
+            display:flex;
+            gap:8px;
+        }
+
+        .edit{
+            background:#ffc107;
+            color:black;
+            padding:6px 10px;
+            border-radius:6px;
+            text-decoration:none;
+            font-size:13px;
+        }
+
+        .delete{
+            background:#dc3545;
+            color:white;
+            padding:6px 10px;
+            border-radius:6px;
+            text-decoration:none;
+            font-size:13px;
+        }
+
+        .back{
+            display:inline-block;
+            margin-bottom:15px;
+            text-decoration:none;
+            background:black;
+            color:white;
+            padding:8px 14px;
+            border-radius:6px;
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="container">
+
+<a class="back" href="/admin">← Back to Admin</a>
+
+<h2>
+    Items sold by {{ user.name }} ({{ user.mobile }})
+</h2>
+
+{% if items %}
+<table>
+    <tr>
+        <th>Image</th>
+        <th>Model</th>
+        <th>Type</th>
+        <th>Price</th>
+        <th>Address</th>
+        <th>About</th>
+        <th>Action</th>
+    </tr>
+
+    {% for item in items %}
+    <tr>
+        <td>
+            {% if item.images %}
+                <img src="{{ item.images[0] }}">
+            {% else %}
+                No Image
+            {% endif %}
+        </td>
+
+        <td>{{ item.model }}</td>
+        <td>{{ item.type }}</td>
+        <td>₹ {{ item.price }}</td>
+        <td>{{ item.address }}</td>
+        <td>{{ item.about }}</td>
+
+        <td>
+            <div class="actions">
+                <!-- ✅ ADMIN EDIT -->
+                <a class="edit"
+                   href="/admin-edit-item/{{ item.id }}">
+                   Edit
+                </a>
+
+                <!-- ✅ ADMIN DELETE -->
+                <a class="delete"
+                   href="/admin-delete-item/{{ item.id }}"
+                   onclick="return confirm('Delete this item?')">
+                   Delete
+                </a>
+            </div>
+        </td>
+    </tr>
+    {% endfor %}
+</table>
+{% else %}
+<p>No items found.</p>
+{% endif %}
+
+</div>
+
+</body>
+</html>

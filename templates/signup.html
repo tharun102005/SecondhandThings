@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Sign Up</title>
+
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+<div class="sign_up_container">
+    <h2>Create Account</h2>
+
+    <!-- ✅ FLASK SIGNUP FORM -->
+    <form method="POST" action="/signup">
+        <input
+            class="sign_up_full_name"
+            type="text"
+            name="name"
+            placeholder="Full Name"
+            required
+        >
+
+        <input
+            class="sign_up_email_id"
+            type="email"
+            name="email"
+            placeholder="Email ID"
+            required
+        >
+
+        <input
+            class="sign_up_mobile_no"
+            type="number"
+            name="mobile"
+            placeholder="Mobile Number"
+            required
+        >
+
+        <input
+            class="sign_up_password"
+            type="password"
+            name="password"
+            placeholder="Password"
+            required
+        >
+
+        <button type="submit">Sign Up</button>
+    </form>
+
+    <p style="text-align:center;color:#000;">
+        Already have an account?
+        <a style="color:rgb(97, 221, 241);" href="/login">Login</a>
+    </p>
+</div>
+
+</body>
+</html>

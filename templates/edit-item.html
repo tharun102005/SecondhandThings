@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Edit Item</title>
+    <style>
+        body { font-family: Arial; background:#f1f3f6; }
+        .box {
+            width:420px;
+            margin:40px auto;
+            background:#fff;
+            padding:20px;
+            border-radius:10px;
+        }
+        img {
+            width:80px;
+            height:80px;
+            object-fit:cover;
+            border-radius:6px;
+        }
+        .img-row {
+            display:flex;
+            align-items:center;
+            gap:10px;
+            margin-bottom:8px;
+        }
+        .delete-btn {
+            background:red;
+            color:white;
+            border:none;
+            padding:6px 10px;
+            border-radius:5px;
+            cursor:pointer;
+        }
+        input, textarea, select {
+            width:100%;
+            margin:6px 0;
+            padding:8px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="box">
+<h2>Edit Item</h2>
+
+<form method="post" enctype="multipart/form-data">
+
+<label>Model</label>
+<input name="model" value="{{ item.model }}">
+
+<label>Price</label>
+<input name="price" value="{{ item.price }}">
+
+<label>Type</label>
+<select name="type">
+    <option value="Electronic" {{ 'selected' if item.type=='Electronic' }}>Electronic</option>
+    <option value="Bike" {{ 'selected' if item.type=='Bike' }}>Bike</option>
+    <option value="Car" {{ 'selected' if item.type=='Car' }}>Car</option>
+</select>
+
+<label>Address</label>
+<input name="address" value="{{ item.address }}">
+
+<label>About</label>
+<textarea name="about">{{ item.about }}</textarea>
+
+<h4>Images</h4>
+
+{% for img in item.images %}
+<div class="img-row">
+    <img src="{{ img }}">
+    <a href="/delete-item-image/{{ item.id }}/{{ loop.index0 }}"
+       onclick="return confirm('Delete this image?')">
+        <button type="button" class="delete-btn">Delete</button>
+    </a>
+</div>
+{% endfor %}
+
+<label>Add New Images</label>
+<input type="file" name="images" multiple onchange="previewImages(this)">
+
+<div id="preview"></div>
+
+<button type="submit" style="background:green;color:white;margin-top:10px">
+    Save Changes
+</button>
+
+</form>
+</div>
+
+<script>
+function previewImages(input){
+    let preview=document.getElementById("preview");
+    preview.innerHTML="";
+    Array.from(input.files).forEach(file=>{
+        let img=document.createElement("img");
+        img.src=URL.createObjectURL(file);
+        img.style.margin="5px";
+        preview.appendChild(img);
+    });
+}
+</script>
+
+</body>
+</html>

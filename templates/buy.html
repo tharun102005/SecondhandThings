@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Buy Products</title>
+
+<style>
+body{
+    margin:0;
+    font-family:Arial, sans-serif;
+    background:#f1f3f6;
+}
+
+/* HEADER */
+.header{
+    background:#2874f0;
+    padding:12px 20px;
+    display:flex;
+    align-items:center;
+    color:white;
+}
+
+.logo{
+    font-size:22px;
+    font-weight:bold;
+    margin-right:20px;
+}
+
+.search-box{
+    flex:1;
+    display:flex;
+    gap:8px;
+}
+
+.search-box input,
+.search-box select,
+.search-box button{
+    padding:8px;
+    border-radius:6px;
+    border:none;
+    font-size:14px;
+}
+
+.search-box input{ width:140px; }
+
+.search-box button{
+    background:#dc3545;
+    color:white;
+    cursor:pointer;
+}
+
+/* PROFILE */
+.header-links{
+    margin-left:auto;
+}
+
+.profile-menu{
+    position:relative;
+}
+
+.profile-img{
+    width:34px;
+    height:34px;
+    border-radius:50%;
+    cursor:pointer;
+    border:2px solid white;
+}
+
+.profile-dropdown{
+    display:none;
+    position:absolute;
+    right:0;
+    top:42px;
+    background:white;
+    border-radius:8px;
+    width:160px;
+    box-shadow:0 4px 12px rgba(0,0,0,.2);
+}
+
+.profile-dropdown a{
+    display:block;
+    padding:10px;
+    text-decoration:none;
+    color:black;
+}
+
+.profile-dropdown a:hover{
+    background:#f1f1f1;
+}
+
+/* CATEGORIES */
+.categories{
+    background:white;
+    display:flex;
+    justify-content:space-around;
+    padding:15px;
+}
+
+.category{
+    cursor:pointer;
+    font-weight:bold;
+}
+
+/* PRODUCTS */
+.section{
+    background:white;
+    margin:20px;
+    padding:20px;
+    border-radius:6px;
+}
+
+.products{
+    display:grid;
+    grid-template-columns:repeat(auto-fill,minmax(250px,1fr));
+    gap:20px;
+}
+
+.card{
+    background:white;
+    border-radius:10px;
+    padding:12px;
+    box-shadow:0 2px 6px rgba(0,0,0,.2);
+    cursor:pointer;
+}
+
+.img-box{
+    height:200px;
+    border-radius:10px;
+    overflow:hidden;
+    background:#fff;
+}
+
+.slide-img{
+    width:100%;
+    height:100%;
+    object-fit:contain;
+}
+
+.price{
+    font-size:16px;
+    color:green;
+    font-weight:bold;
+    margin-top:6px;
+}
+
+/* WISHLIST */
+.wishlist-btn{
+    margin-top:8px;
+    background:#ff4d88;
+    color:white;
+    border:none;
+    padding:6px 14px;
+    border-radius:20px;
+    cursor:pointer;
+}
+
+.wishlist-btn.added{
+    background:#28a745;
+}
+</style>
+</head>
+
+<body>
+
+<!-- HEADER -->
+<div class="header">
+    <div class="logo">MyShop</div>
+
+    <div class="search-box">
+        <input type="text" id="search" placeholder="Search">
+        <input type="number" id="minPriceInput" placeholder="Min ₹">
+        <input type="number" id="maxPriceInput" placeholder="Max ₹">
+
+        <select id="sortPrice">
+            <option value="">Sort</option>
+            <option value="low">Low → High</option>
+            <option value="high">High → Low</option>
+        </select>
+
+        <button id="resetFilters">Reset</button>
+    </div>
+
+    <div class="header-links">
+        <div class="profile-menu">
+            <img src="{{ session.user.profile_image if session.user.profile_image else '/static/uploads/default.png' }}"
+                 class="profile-img"
+                 onclick="toggleProfileMenu()">
+            <div class="profile-dropdown" id="profileDropdown">
+                <a href="/profile">My Profile</a>
+                <a href="/wishlist">My Wishlist</a>
+                <a href="/sell">Sell</a>
+                <a href="/logout" style="color:red;">Logout</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- CATEGORIES -->
+<div class="categories">
+    <div class="category" onclick="filterType('')">All</div>
+    <div class="category" onclick="filterType('Electronic')">Electronics</div>
+    <div class="category" onclick="filterType('Bike')">Bike</div>
+    <div class="category" onclick="filterType('Car')">Car</div>
+</div>
+
+<!-- PRODUCTS -->
+<div class="section">
+    <h3>Best Deals for You</h3>
+    <div class="products" id="products"></div>
+</div>
+
+<script>
+let allItems=[];
+let wishlistItems = JSON.parse('{{ wishlist | tojson | safe }}');
+let currentType="", searchText="", sortOrder="";
+let minPriceValue = 0;
+let maxPriceValue = Infinity;
+
+let globalIndex = 0;
+let globalTimer = null;
+
+/* INPUT ELEMENTS */
+const searchInput = document.getElementById("search");
+const minInput = document.getElementById("minPriceInput");
+const maxInput = document.getElementById("maxPriceInput");
+const sortInput = document.getElementById("sortPrice");
+const resetBtn = document.getElementById("resetFilters");
+
+/* LOAD ITEMS */
+fetch("/get-items")
+.then(r=>r.json())
+.then(d=>{
+    allItems = d;
+    applyFilters();
+});
+
+/* FILTER HANDLERS */
+function filterType(t){ currentType=t; applyFilters(); }
+
+searchInput.oninput = () => {
+    searchText = searchInput.value.toLowerCase();
+    applyFilters();
+};
+
+minInput.oninput = () => {
+    minPriceValue = Number(minInput.value) || 0;
+    applyFilters();
+};
+
+maxInput.oninput = () => {
+    maxPriceValue = Number(maxInput.value) || Infinity;
+    applyFilters();
+};
+
+sortInput.onchange = () => {
+    sortOrder = sortInput.value;
+    applyFilters();
+};
+
+resetBtn.onclick = () => {
+    currentType="";
+    searchText="";
+    minPriceValue=0;
+    maxPriceValue=Infinity;
+    sortOrder="";
+
+    searchInput.value="";
+    minInput.value="";
+    maxInput.value="";
+    sortInput.value="";
+
+    showItems(allItems);
+};
+
+/* APPLY FILTERS */
+function applyFilters(){
+    let filtered = allItems.filter(i=>{
+        let p = Number(i.price) || 0;
+        return (!currentType || i.type === currentType) &&
+               (i.model.toLowerCase().includes(searchText) ||
+                i.type.toLowerCase().includes(searchText)) &&
+               p >= minPriceValue &&
+               p <= maxPriceValue;
+    });
+
+    if(sortOrder==="low") filtered.sort((a,b)=>a.price-b.price);
+    if(sortOrder==="high") filtered.sort((a,b)=>b.price-a.price);
+
+    showItems(filtered);
+}
+
+/* SHOW ITEMS */
+function showItems(items){
+    let html="";
+    items.forEach(i=>{
+        let isAdded = wishlistItems.includes(i.id);
+        html+=`
+        <div class="card" onclick="openItem('${i.id}')">
+            <div class="img-box">
+                <img src="${i.images?.[0]||''}"
+                     class="slide-img"
+                     data-images='${JSON.stringify(i.images||[])}'>
+            </div>
+
+            <div class="price">₹ ${i.price}</div>
+            <div><b>Model:</b> ${i.model}</div>
+
+            <button class="wishlist-btn ${isAdded ? 'added' : ''}"
+                onclick="toggleWishlist(event,this,'${i.id}')">
+                ${isAdded ? '✓ Added' : '❤️ Wishlist'}
+            </button>
+        </div>`;
+    });
+
+    products.innerHTML = html;
+    startGlobalSlider();
+}
+
+/* GLOBAL IMAGE SLIDER (ALL SAME TIME, 4s) */
+function startGlobalSlider(){
+    if(globalTimer) clearInterval(globalTimer);
+
+    globalTimer = setInterval(()=>{
+        document.querySelectorAll(".slide-img").forEach(img=>{
+            let imgs = JSON.parse(img.dataset.images || "[]");
+            if(imgs.length <= 1) return;
+
+            img.src = imgs[globalIndex % imgs.length];
+        });
+        globalIndex++;
+    }, 4000);
+}
+
+/* OPEN ITEM */
+function openItem(id){
+    window.location.href="/item/"+id;
+}
+
+/* WISHLIST */
+function toggleWishlist(e,btn,id){
+    e.stopPropagation();
+    btn.classList.toggle("added");
+    
+    if(btn.classList.contains("added")){
+        btn.innerText = "✓ Added";
+        if(!wishlistItems.includes(id)) wishlistItems.push(id);
+    } else {
+        btn.innerText = "❤️ Wishlist";
+        wishlistItems = wishlistItems.filter(item => item !== id);
+    }
+    
+    fetch("/toggle-wishlist/"+id);
+}
+
+/* PROFILE MENU */
+function toggleProfileMenu(){
+    let m=document.getElementById("profileDropdown");
+    m.style.display = m.style.display==="block" ? "none" : "block";
+}
+</script>
+
+</body>
+</html>

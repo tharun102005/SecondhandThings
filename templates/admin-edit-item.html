@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Edit Item (Admin)</title>
+
+    <style>
+        body{
+            font-family: Arial;
+            background:#f1f3f6;
+        }
+
+        .card{
+            max-width:600px;
+            margin:40px auto;
+            background:white;
+            padding:25px;
+            border-radius:12px;
+            box-shadow:0 6px 20px rgba(0,0,0,.15);
+        }
+
+        h2{
+            margin-bottom:20px;
+        }
+
+        label{
+            font-weight:bold;
+            display:block;
+            margin-top:12px;
+        }
+
+        input, select, textarea{
+            width:100%;
+            padding:10px;
+            margin-top:6px;
+            border-radius:6px;
+            border:1px solid #ccc;
+        }
+
+        textarea{
+            resize:vertical;
+            height:90px;
+        }
+
+        button{
+            margin-top:20px;
+            padding:12px;
+            width:100%;
+            border:none;
+            border-radius:6px;
+            background:#28a745;
+            color:white;
+            font-size:16px;
+            cursor:pointer;
+        }
+
+        .back{
+            display:inline-block;
+            margin-bottom:15px;
+            text-decoration:none;
+            background:black;
+            color:white;
+            padding:8px 14px;
+            border-radius:6px;
+        }
+
+        /* STATUS */
+        .status-box{
+            margin-bottom:15px;
+            display:flex;
+            justify-content:space-between;
+            align-items:center;
+        }
+
+        .status-text{
+            font-weight:bold;
+        }
+
+        .active{
+            color:green;
+        }
+
+        .blocked{
+            color:red;
+        }
+
+        .toggle-btn{
+            padding:6px 14px;
+            border:none;
+            border-radius:6px;
+            color:white;
+            cursor:pointer;
+            font-size:14px;
+        }
+
+        .btn-block{
+            background:#ff9800;
+        }
+
+        .btn-unblock{
+            background:#4caf50;
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="card">
+
+<a class="back" href="/admin-user-items/{{ item.mobile }}">← Back</a>
+
+<h2>Edit Item (Admin)</h2>
+
+<!-- ITEM STATUS -->
+<div class="status-box">
+    <div class="status-text">
+        Status:
+        <span id="statusLabel"
+              class="{{ 'blocked' if item.is_blocked else 'active' }}">
+            {{ 'Blocked' if item.is_blocked else 'Active' }}
+        </span>
+    </div>
+
+    <button id="toggleBtn"
+            class="toggle-btn {{ 'btn-unblock' if item.is_blocked else 'btn-block' }}"
+            data-id="{{ item.id }}"
+            data-blocked="{{ item.is_blocked|lower }}"
+            onclick="toggleItemStatus(this)">
+        {{ 'Unblock Item' if item.is_blocked else 'Block Item' }}
+    </button>
+</div>
+
+<form method="post">
+
+    <label>Model</label>
+    <input type="text" name="model" value="{{ item.model }}" required>
+
+    <label>Price</label>
+    <input type="number" name="price" value="{{ item.price }}" required>
+
+    <label>Type</label>
+    <select name="type">
+        <option value="Bike" {% if item.type == 'Bike' %}selected{% endif %}>Bike</option>
+        <option value="Car" {% if item.type == 'Car' %}selected{% endif %}>Car</option>
+        <option value="Mobile" {% if item.type == 'Mobile' %}selected{% endif %}>Mobile</option>
+        <option value="Other" {% if item.type == 'Other' %}selected{% endif %}>Other</option>
+    </select>
+
+    <label>Address</label>
+    <input type="text" name="address" value="{{ item.address }}">
+
+    <label>About</label>
+    <textarea name="about">{{ item.about }}</textarea>
+
+    <button type="submit">Save Changes</button>
+
+</form>
+
+</div>
+
+<script>
+function toggleItemStatus(btn){
+    const itemId = btn.dataset.id;
+    let isBlocked = btn.dataset.blocked === "true";
+
+    fetch("/admin-toggle-item",{
+        method:"POST",
+        headers:{ "Content-Type":"application/json" },
+        body: JSON.stringify({ item_id: itemId })
+    })
+    .then(res => res.json())
+    .then(() => {
+        isBlocked = !isBlocked;
+        btn.dataset.blocked = isBlocked;
+
+        const label = document.getElementById("statusLabel");
+
+        if(isBlocked){
+            label.innerText = "Blocked";
+            label.className = "blocked";
+            btn.innerText = "Unblock Item";
+            btn.className = "toggle-btn btn-unblock";
+        }else{
+            label.innerText = "Active";
+            label.className = "active";
+            btn.innerText = "Block Item";
+            btn.className = "toggle-btn btn-block";
+        }
+    });
+}
+</script>
+
+</body>
+</html>

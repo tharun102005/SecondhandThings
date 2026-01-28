@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Sell Item</title>
+
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+
+    <style>
+        .image-preview {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        .image-preview img {
+            width: 120px;
+            height: 90px;
+            object-fit: cover;
+            border-radius: 10px;
+            border: 2px solid #ccc;
+        }
+        .container.sell-container {
+            width: 50%;
+        }
+        .form-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+        .form-grid .full {
+            grid-column: span 2;
+        }
+        .image-input {
+            margin-top: 8px;
+            width: 90%;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container sell-container">
+    <h2>Sell Your Item</h2>
+
+    <form onsubmit="return sellItem()">
+        <div class="form-grid">
+
+            <input type="text" id="name" placeholder="Your Name" required>
+            <input type="text" id="mobile" placeholder="Mobile Number" required>
+
+            <input type="email" id="email" placeholder="Email ID" required>
+            <input type="number" id="price" placeholder="Item Price" required>
+
+            <!-- ✅ SINGLE MODEL FIELD -->
+            <input type="text" id="model" placeholder="Item Model (Ex: HP 15s, Pulsar 150)" required>
+
+            <select id="type" required>
+                <option value="">Select Item Type</option>
+                <option value="Electronic">Electronic</option>
+                <option value="Bike">Bike</option>
+                <option value="Car">Car</option>
+            </select>
+
+            <textarea id="address" class="full" placeholder="Address" required></textarea>
+            <textarea id="about" class="full" placeholder="About Item" required></textarea>
+
+            <div class="full">
+                <label><b>Add 3 Pictures</b></label>
+
+                <input class="image-input" type="file" accept="image/*" onchange="previewImage(event,0)" required>
+                <input class="image-input" type="file" accept="image/*" onchange="previewImage(event,1)" required>
+                <input class="image-input" type="file" accept="image/*" onchange="previewImage(event,2)" required>
+
+                <div class="image-preview">
+                    <img id="preview0">
+                    <img id="preview1">
+                    <img id="preview2">
+                </div>
+            </div>
+        </div>
+        
+
+        <button type="submit">Submit</button>
+    </form>
+</div>
+
+<script>
+let images = ["", "", ""];
+
+/* IMAGE PREVIEW */
+function previewImage(event, index) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = function () {
+        images[index] = reader.result;
+        document.getElementById("preview" + index).src = reader.result;
+    };
+    reader.readAsDataURL(file);
+}
+
+/* SUBMIT SELL ITEM */
+function sellItem() {
+
+    if (images.includes("")) {
+        alert("Please upload all 3 images ❌");
+        return false;
+    }
+
+    const item = {
+        name: document.getElementById("name").value,
+        mobile: document.getElementById("mobile").value,
+        email: document.getElementById("email").value,
+        price: document.getElementById("price").value,
+        model: document.getElementById("model").value,   // ✅ FIXED
+        type: document.getElementById("type").value,
+        address: document.getElementById("address").value,
+        about: document.getElementById("about").value,
+        images: images
+    };
+
+    fetch("/save-item", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(item)
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success) {
+            alert("Item saved successfully ✅");
+            window.location.href = "/buy";
+        } else {
+            alert(data.error || "Save failed ❌");
+        }
+    })
+    .catch(() => alert("Server error ❌"));
+
+    return false;
+}
+</script>
+
+</body>
+</html>

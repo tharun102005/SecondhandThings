@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>My Profile</title>
+
+    <style>
+        body { background:#f1f3f6; font-family:Arial; }
+
+        .card {
+            max-width:420px;
+            margin:40px auto;
+            background:white;
+            padding:20px;
+            border-radius:12px;
+            box-shadow:0 6px 20px rgba(0,0,0,0.15);
+        }
+
+        h2 { text-align:center; }
+
+        label { font-weight:bold; font-size:14px; }
+
+        input {
+            width:100%;
+            padding:10px;
+            margin:8px 0 14px;
+            border-radius:6px;
+            border:1px solid #ccc;
+        }
+
+        button {
+            width:100%;
+            padding:12px;
+            background:#2874f0;
+            color:white;
+            border:none;
+            border-radius:6px;
+            font-weight:bold;
+        }
+
+        .profile-img {
+            width:120px;
+            height:120px;
+            border-radius:50%;
+            object-fit:cover;
+            border:3px solid #2874f0;
+            cursor:pointer;
+        }
+
+        .item {
+            background:#f8f9fa;
+            padding:10px;
+            border-radius:8px;
+            margin-top:10px;
+        }
+
+        .actions {
+            display:flex;
+            gap:10px;
+            margin-top:6px;
+        }
+
+        .edit {
+            background:#ffc107;
+            color:black;
+            padding:6px 10px;
+            border-radius:6px;
+            text-decoration:none;
+            font-size:13px;
+        }
+
+        .delete {
+            background:#dc3545;
+            color:white;
+            padding:6px 10px;
+            border-radius:6px;
+            text-decoration:none;
+            font-size:13px;
+        }
+
+        .back {
+            display:block;
+            text-align:center;
+            margin-top:15px;
+            text-decoration:none;
+            color:#2874f0;
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="card">
+    <h2>My Profile</h2>
+
+    <form method="post" enctype="multipart/form-data">
+
+        <!-- PROFILE IMAGE -->
+        <div style="text-align:center;margin-bottom:15px">
+            <label for="profile_image">
+                <img id="previewImg"
+                     class="profile-img"
+                     src="{{ user.profile_image or '/static/default-user.png' }}">
+            </label>
+            <input type="file"
+                   id="profile_image"
+                   name="profile_image"
+                   accept="image/*"
+                   style="display:none"
+                   onchange="previewProfile(this)">
+            <p style="font-size:12px;color:#666">Click image to change</p>
+        </div>
+
+        <label>Name</label>
+        <input name="name" value="{{ user.name }}">
+
+        <label>Email</label>
+        <input name="email" value="{{ user.email }}">
+
+        <label>Mobile</label>
+        <input value="{{ user.mobile }}" readonly>
+
+        <label>Address</label>
+        <input name="address" value="{{ user.address }}">
+
+        <label>Date of Birth</label>
+        <input type="date" name="dob" value="{{ user.dob }}">
+
+        <button>Save Profile</button>
+    </form>
+
+    <a class="back" href="/buy">← Back to Buy</a>
+
+    <h3 style="margin-top:25px;">My Sell Items</h3>
+
+    {% if my_items %}
+        {% for item in my_items %}
+            <div class="item">
+                <b>{{ item.model }}</b><br>
+                ₹ {{ item.price }} | {{ item.type }}
+
+                <div class="actions">
+                    <a class="edit" href="/edit-my-item/{{ item.id }}">Edit</a>
+                    <a class="delete"
+                       href="/delete-my-item/{{ item.id }}"
+                       onclick="return confirm('Delete item?')">Delete</a>
+                </div>
+            </div>
+        {% endfor %}
+    {% else %}
+        <p>No items sold yet.</p>
+    {% endif %}
+</div>
+
+<script>
+function previewProfile(input){
+    if(input.files && input.files[0]){
+        let reader = new FileReader();
+        reader.onload = e => {
+            document.getElementById("previewImg").src = e.target.result;
+        };
+        reader.readAsDataURL(input.files[0]);
+    }
+}
+</script>
+
+</body>
+</html>
