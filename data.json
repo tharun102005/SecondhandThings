@@ -7,13 +7,6 @@
             "mobile": "9345420885",
             "name": "Tharun ",
             "password": "1234",
-<<<<<<< HEAD
-            "profile_image": "/static/uploads/download_2.jpg",
-            "status": "active",
-            "wishlist": [
-                "58272d65-fc9b-4b56-8086-985f90b7b680",
-                "ff5c6196-5f49-4295-90b0-d167db2a2b3b"
-=======
             "profile_image": "/static/uploads/download_32.jpg",
             "status": "active",
             "wishlist": [
@@ -111,7 +104,6 @@
             "status": "active",
             "wishlist": [
                 "b149e1c3-a228-4aa2-9fc5-e7f0715db4a0"
->>>>>>> 663579a63a98523547d275a2d042e1c2d666db5d
             ]
         }
     ],

@@ -10,39 +10,31 @@ import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 
+import logging
+
+# Configure logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
+
 # ========================
-# EMAIL CONFIGURATION (HARDCODED)
+# EMAIL CONFIGURATION (ENVIRONMENT VARIABLES)
 # ========================
-SMTP_SERVER = "smtp.gmail.com"
-SMTP_PORT = 587
-SENDER_EMAIL = "tharun060828@gmail.com"
-SENDER_PASSWORD = "zllz vdgs jtxi voty"
-DEBUG_MODE = False
+SMTP_SERVER = os.environ.get("SMTP_SERVER", "smtp.gmail.com")
+SMTP_PORT = int(os.environ.get("SMTP_PORT", 587))
+SENDER_EMAIL = os.environ.get("SENDER_EMAIL")
+SENDER_PASSWORD = os.environ.get("SENDER_PASSWORD")
+DEBUG_MODE = os.environ.get("DEBUG_MODE", "False").lower() == "true"
 
 app = Flask(__name__)
-app.secret_key = "mysecretkey"
-
-DATA_FILE = "data.json"
-UPLOAD_FOLDER = "static/uploads"
-OTP_FILE = "otp_store.json"
-app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
-
-os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-
-if not os.path.exists(DATA_FILE):
-    with open(DATA_FILE, "w") as f:
-        json.dump({"users": [], "items": []}, f)
-
-if not os.path.exists(OTP_FILE):
-    with open(OTP_FILE, "w") as f:
-        json.dump({}, f)
-
+app.secret_key = os.environ.get("SECRET_KEY", "mysecretkey")
 
 # =========================
 # FILE PATHS
 # =========================
-DATA_FILE = "data.json"
-UPLOAD_FOLDER = "static/uploads"
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+DATA_FILE = os.path.join(BASE_DIR, "data.json")
+OTP_FILE = os.path.join(BASE_DIR, "otp_store.json")
+UPLOAD_FOLDER = os.path.join(BASE_DIR, "static", "uploads")
 app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
 
 # =========================
@@ -53,6 +45,10 @@ os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 if not os.path.exists(DATA_FILE):
     with open(DATA_FILE, "w") as f:
         json.dump({"users": [], "items": []}, f)
+
+if not os.path.exists(OTP_FILE):
+    with open(OTP_FILE, "w") as f:
+        json.dump({}, f)
 
 # =========================
 # OTP HELPER FUNCTIONS
@@ -69,14 +65,18 @@ def load_otp_store():
     try:
         with open(OTP_FILE, "r") as f:
             return json.load(f)
-    except:
+    except (FileNotFoundError, json.JSONDecodeError) as e:
+        logger.error(f"Error loading OTP store: {e}")
         return {}
 
 
 def save_otp_store(otp_store):
     """Save OTP storage to file"""
-    with open(OTP_FILE, "w") as f:
-        json.dump(otp_store, f, indent=4)
+    try:
+        with open(OTP_FILE, "w") as f:
+            json.dump(otp_store, f, indent=4)
+    except Exception as e:
+        logger.error(f"Error saving OTP store: {e}")
 
 
 def store_otp(mobile, otp):
@@ -124,10 +124,10 @@ def send_email_otp(email, otp):
     """Send OTP to email using SMTP"""
     
     # Print to console for development/debugging
-    print(f"\n{'='*60}")
-    print(f"Email OTP Sent to: {email}")
-    print(f"OTP: {otp}")
-    print(f"{'='*60}\n")
+    logger.info(f"\n{'='*60}")
+    logger.info(f"Email OTP Sent to: {email}")
+    logger.info(f"OTP: {otp}")
+    logger.info(f"{'='*60}\n")
     
     if DEBUG_MODE:
         return True
@@ -187,26 +187,27 @@ def send_email_otp(email, otp):
         message.attach(part2)
         
         # Send email
-        print(f"Connecting to SMTP server: {SMTP_SERVER}:{SMTP_PORT}")
+        logger.info(f"Connecting to SMTP server: {SMTP_SERVER}:{SMTP_PORT}")
         with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as server:
             server.starttls()
-            print("TLS connection established")
-            server.login(SENDER_EMAIL, SENDER_PASSWORD)
-            print(f"Logged in as: {SENDER_EMAIL}")
+            logger.info("TLS connection established")
+            if SENDER_EMAIL and SENDER_PASSWORD:
+                server.login(SENDER_EMAIL, SENDER_PASSWORD)
+                logger.info(f"Logged in as: {SENDER_EMAIL}")
             server.sendmail(SENDER_EMAIL, email, message.as_string())
-            print(f"Email sent successfully to {email}")
+            logger.info(f"Email sent successfully to {email}")
         
         return True
         
     except smtplib.SMTPAuthenticationError as e:
-        print(f"SMTP Authentication Error: {str(e)}")
-        print(f"Check if app password is correct: {SENDER_PASSWORD}")
+        logger.error(f"SMTP Authentication Error: {str(e)}")
+        logger.error("Check if app password is correct.")
         return False
     except smtplib.SMTPException as e:
-        print(f"SMTP Error: {str(e)}")
+        logger.error(f"SMTP Error: {str(e)}")
         return False
     except Exception as e:
-        print(f"Error sending email: {str(e)}")
+        logger.error(f"Error sending email: {str(e)}")
         return False
 
 # =========================
@@ -215,13 +216,20 @@ def send_email_otp(email, otp):
 
 
 def load_data():
-    with open(DATA_FILE, "r") as f:
-        return json.load(f)
+    try:
+        with open(DATA_FILE, "r") as f:
+            return json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError) as e:
+        logger.error(f"Error loading data.json: {e}")
+        return {"users": [], "items": []}
 
 
 def save_data(data):
-    with open(DATA_FILE, "w") as f:
-        json.dump(data, f, indent=4)
+    try:
+        with open(DATA_FILE, "w") as f:
+            json.dump(data, f, indent=4)
+    except Exception as e:
+        logger.error(f"Error saving data.json: {e}")
 
 # =========================
 # HOME
@@ -504,7 +512,8 @@ def profile():
             filename = secure_filename(file.filename)
             path = os.path.join(app.config["UPLOAD_FOLDER"], filename)
             file.save(path)
-            user["profile_image"] = "/" + path.replace("\\", "/")
+            # In Vercel, static files served dynamically might need adjustment, but for now we store them correctly.
+            user["profile_image"] = "/static/uploads/" + filename
 
         for i, u in enumerate(data["users"]):
             if u.get("mobile") == user.get("mobile"):
